@@ -1,0 +1,1 @@
+python -m pip uninstall my_echo_kernel
