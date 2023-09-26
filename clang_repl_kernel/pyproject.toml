@@ -1,0 +1,59 @@
+[build-system]
+requires = [
+    "hatchling>=1.10.0", "ipykernel",  "pytest", "traitlets", "jupyter_client", "requests"
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "clang-repl-kernel"
+dynamic = [
+    "version",
+]
+description = "Clang-REPL kernel for Jupyter"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Yoon, Jonghyun", email = "ormastes@naver.com" },
+]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "ipykernel",
+    "jupyter_client",
+    "traitlets",
+]
+
+#[project.optional-dependencies]
+#test = [
+#  "jupyter_kernel_test",
+#]
+
+#[tool.hatch.publish.index]
+#disable = true
+
+[project.urls]
+Homepage = "https://github.com/ormastes/jupyter_kernels/tree/main/clang_repl_kernel"
+
+[tool.hatch.version]
+path = "clang_repl_kernel/__init__.py"
+
+# Used to call hatch_build.py
+[tool.hatch.build.hooks.custom]
+
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/clang_repl_kernel",
+]
+exclude = [
+    "/clang_repl_kernel/Windows",
+    "/clang_repl_kernel/Linux",
+    "/clang_repl_kernel//Darwin",
+]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"data_kernelspec/share" = "share"

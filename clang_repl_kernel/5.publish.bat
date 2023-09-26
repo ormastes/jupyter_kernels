@@ -1,0 +1,1 @@
+python -m twine upload --config-file C:\Users\ormas\.pypirc -r pypi dist/*
