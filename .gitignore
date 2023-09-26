@@ -1,0 +1,12 @@
+/echo_kernel/__pycache__
+/echo_kernel/data_kernelspec
+/echo_kernel/.idea
+/echo_kernel/.ipynb_checkpoints
+/shell_echo_kernel/__pycache__
+/shell_echo_kernel/data_kernelspec
+/shell_echo_kernel/.idea
+/shell_echo_kernel/.ipynb_checkpoints
+/clang_repl_kernel/*.bak
+/echo_kernel/my_echo_kernel/__pycache__
+/clang_repl_kernel/clang_repl_kernel/*.bak
+/shell_echo_kernel/shell_echo_kernel/__pycache__
