@@ -1,7 +1,7 @@
 import os
 import platform
 
-from clang_repl_kernel import ClangReplKernel, DefaultText
+from clang_repl_kernel import ClangReplKernel, ClangReplConfig, install_bundles
 import pytest
 
 
@@ -22,7 +22,7 @@ def setup_dir():
 def kernel():
     ClangReplKernel.ClangReplKernel_InTest = True
     result = MockedKernel()
-    #result.my_shell._prog = DefaultText.BIN_PATH
+    result.my_shell._prog = ClangReplConfig.BIN_PATH
     result.my_shell.run()
     return result
 
@@ -52,15 +52,23 @@ class MockedKernel(ClangReplKernel):
 
 def test_env_dir(setup_dir):
     # clang-repl file exist on current directory
-    result = os.path.isfile(DefaultText.BIN_PATH)
+    result = os.path.isfile(ClangReplConfig.BIN_PATH)
     assert result
+
+
+def test_install_bundles():
+    # delete bundle if exist
+    if os.path.exists(ClangReplConfig.BIN_PATH):
+        os.remove(ClangReplConfig.BIN_PATH)
+    install_bundles()
+    assert os.path.exists(ClangReplConfig.BIN_PATH)
 
 
 def test_new(setup_dir):
     # Create an instance of the kernel
     ClangReplKernel.ClangReplKernel_InTest = True
     kernel = MockedKernel()
-    kernel.my_shell._prog = DefaultText.BIN_PATH
+    kernel.my_shell._prog = ClangReplConfig.BIN_PATH
     kernel.my_shell.run()
     assert kernel.execution_count == 0
     assert kernel.stream is None

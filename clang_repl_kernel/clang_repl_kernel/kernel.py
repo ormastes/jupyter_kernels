@@ -5,10 +5,8 @@ from enum import Enum
 from subprocess import check_output
 import subprocess
 import os
-
+import sys
 import platform
-
-from traitlets import CaselessStrEnum
 
 
 def is_tool(name):
@@ -40,7 +38,7 @@ def find_prog(prog):
         assert os.path.isfile(out)
         assert os.path.exists(out)
         return out, True
-    return None
+    return None, False
 
 
 class ShellStatus(Enum):
@@ -49,11 +47,13 @@ class ShellStatus(Enum):
     LOGGING = 2
 
 
-class DefaultText:
+class ClangReplConfig:
     BIN_WIN = 'clang-repl.exe'
     BIN_DEFAULT = 'clang-repl'
+    PYTHON_EXE = 'python3'
     if platform.system() == 'Windows':
         BIN = BIN_WIN
+        PYTHON_EXE = 'python.exe'
     else:
         BIN = BIN_DEFAULT
     BIN_REL_DIR = platform.system()
@@ -61,6 +61,7 @@ class DefaultText:
     BIN_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), platform.system())
     BIN_PATH = os.path.join(BIN_DIR, BIN)
     BANNER_NAME = 'clang-repl'
+    PREFER_BUNDLE = True if platform.system() == 'Windows' else False
 
 
 class Shell:
@@ -106,6 +107,10 @@ class Shell:
         self.run()
 
     def _run(self, program, tool_found):
+        if not os.path.exists(program):
+            raise Exception('Cannot find: ' + program + " in " + os.getcwd() +
+                            " in src dir: " + os.path.dirname(os.path.realpath(__file__)))
+
         program_with_args = [program] + self.args
         env = self.env if tool_found else None
         self.process = subprocess.Popen(
@@ -236,12 +241,12 @@ class Shell:
 
 
 class BashShell(Shell):
-    def __init__(self, bin_path=DefaultText.BIN_PATH, banner_name=DefaultText.BANNER_NAME):
+    def __init__(self, bin_path=ClangReplConfig.BIN_PATH, banner_name=ClangReplConfig.BANNER_NAME):
         super().__init__(bin_path, banner_name)
 
 
 class WinShell(Shell):
-    def __init__(self, bin_path=DefaultText.BIN_PATH, banner_name=DefaultText.BANNER_NAME):
+    def __init__(self, bin_path=ClangReplConfig.BIN_PATH, banner_name=ClangReplConfig.BANNER_NAME):
         super().__init__(bin_path, banner_name)
 
 
@@ -257,11 +262,18 @@ class ClangReplKernel(Kernel):
         'mimetype': 'text/x-c++src',
         'file_extension': '.cpp',
     }
-    std = CaselessStrEnum(default_value='c++23',
-                          values=['c++14', 'c++17', 'c++20', 'c++23'],
-                          help="C++ standard to use, either c++14, c++17, c++20 or c++23").tag(config=True)
+    # it does not work and make conflict with other kernel instances.
+    # std = CaselessStrEnum(default_value='c++23',
+    #                      values=['c++14', 'c++17', 'c++20', 'c++23'],
+    #                      help="C++ standard to use, either c++14, c++17, c++20 or c++23").tag(config=True)
 
     banner = "Clang Repl kernel - clang repl interpreter for jupyter"
+
+    inputs = []
+
+    @staticmethod
+    def arg_inputs(an_input):
+        ClangReplKernel.inputs.append(an_input)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -270,7 +282,13 @@ class ClangReplKernel(Kernel):
             self.my_shell = WinShell()
         else:
             self.my_shell = BashShell()
-        self.my_shell.args = ['--Xcc="-std=' + self.std+'"']
+
+        self.std_arg = 'c++23'
+        for an_input in reversed(sys.argv):
+            if an_input.startswith('--std='):
+                self.std_arg = an_input[6:]
+                break
+        self.my_shell.args = ['--Xcc=-std=' + self.std_arg]
         if not ClangReplKernel.ClangReplKernel_InTest:
             self.my_shell.run()
 

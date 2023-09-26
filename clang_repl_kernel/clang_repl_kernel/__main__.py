@@ -1,4 +1,8 @@
 from ipykernel.kernelapp import IPKernelApp
 from . import ClangReplKernel
 
-IPKernelApp.launch_instance(kernel_class=ClangReplKernel)
+
+if __name__ == '__main__':
+    IPKernelApp.launch_instance(kernel_class=ClangReplKernel)
+
+

@@ -1,1 +1,1 @@
-jupyter notebook
+python3 -m jupyter notebook

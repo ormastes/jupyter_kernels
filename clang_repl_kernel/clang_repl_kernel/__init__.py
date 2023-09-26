@@ -1,5 +1,6 @@
 """An example Jupyter kernel"""
 
-__version__ = '1.1'
+__version__ = '0.1.3'
 
-from .kernel import ClangReplKernel, DefaultText
+from .kernel import ClangReplKernel, ClangReplConfig
+from .install import install_bundles
