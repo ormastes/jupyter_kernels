@@ -1,0 +1,1 @@
+python3 -m twine upload --config-file ~/.pypirc -r pypi dist/*
