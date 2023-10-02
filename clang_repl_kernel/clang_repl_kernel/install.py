@@ -14,6 +14,7 @@ kernel_json = {
     "argv": [ClangReplConfig.PYTHON_EXE, "-m", "clang_repl_kernel", "-f", "{connection_file}"],
     "display_name": "Clang-Repl",
     "language": "c++",
+    "env": {"CPLUS_INCLUDE_PATH":""}
 }
 
 
@@ -23,6 +24,19 @@ def install_my_kernel_spec(user=True, prefix=None, args=None, suffix=None, name_
         local_kernel_json = kernel_json.copy()
         local_kernel_json['argv'].extend(args)
         local_kernel_json['display_name'] += name_suffix
+        my_env = os.environ.copy()
+        #local_kernel_json['env']['CPLUS_INCLUDE_PATH'] = my_env.get('CPLUS_INCLUDE_PATH', '')
+        for key in my_env:
+            local_kernel_json['env'][key] = my_env[key]
+            print(key + " = " + my_env[key])
+        if len(my_env) == 0:
+            print("No environment variables found. Please set CPLUS_INCLUDE_PATH manually")
+            local_kernel_json['env']['EMPTY'] = 'True'
+        if False:# local_kernel_json['env']['CPLUS_INCLUDE_PATH'] == '':
+            # get input from user
+            local_kernel_json['env']['CPLUS_INCLUDE_PATH'] = \
+                input("Please enter the path to the C++ include directory (where 'stddef.h is located)\n For example: /usr/lib/llvm-18/lib/clang/18/include : ")
+
         with open(os.path.join(td, 'kernel.json'), 'w') as f:
             json.dump(local_kernel_json, f, sort_keys=True)
         print('Installing Jupyter kernel spec')

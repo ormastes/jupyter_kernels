@@ -14,6 +14,10 @@ def convert_result(result):
 
 @pytest.fixture
 def setup_dir():
+    # set env export CPLUS_INCLUDE_PATH=/mnt/c/cling/jupyter/llvm-project_linux/build/lib/clang/18/include
+    env = os.environ
+    env['CPLUS_INCLUDE_PATH'] = '/mnt/c/cling/jupyter/llvm-project_linux/build/lib/clang/18/include'
+
     if not os.path.isdir(platform.system()):
         pass #raise Exception('Please run this test on supported platform.')
 
@@ -58,6 +62,7 @@ def test_env_dir(setup_dir):
 
 def test_install_bundles():
     # delete bundle if exist
+    assert False
     if os.path.exists(ClangReplConfig.BIN_PATH):
         os.remove(ClangReplConfig.BIN_PATH)
     install_bundles()

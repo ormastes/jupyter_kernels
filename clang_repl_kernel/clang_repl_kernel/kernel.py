@@ -1,5 +1,4 @@
 import asyncio
-from ipykernel.kernelbase import Kernel
 import errno
 from enum import Enum
 from subprocess import check_output
@@ -7,12 +6,17 @@ import subprocess
 import os
 import sys
 import platform
+import logging
+
+from ipykernel.ipkernel import Kernel
 
 
 def is_tool(name):
     try:
+        import subprocess, os
+        my_env = os.environ.copy()
         devnull = open(os.devnull)
-        subprocess.Popen([name], stdout=devnull, stderr=devnull).communicate()
+        subprocess.Popen([name], stdout=devnull, stderr=devnull,  env=my_env).communicate()
     except OSError as e:
         if e.errno == errno.ENOENT:
             return False
@@ -61,7 +65,7 @@ class ClangReplConfig:
     BIN_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), platform.system())
     BIN_PATH = os.path.join(BIN_DIR, BIN)
     BANNER_NAME = 'clang-repl'
-    PREFER_BUNDLE = True if platform.system() == 'Windows' else False
+    PREFER_BUNDLE = True  # if platform.system() == 'Windows' else False
 
 
 class Shell:
@@ -77,6 +81,9 @@ class Shell:
         self._prog = None
         self.loop = None
         self.args = []
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+        self.logger = logging.getLogger('LOGGER_NAME')
+
 
     def __del__(self):
         self.del_loop()
@@ -112,7 +119,11 @@ class Shell:
                             " in src dir: " + os.path.dirname(os.path.realpath(__file__)))
 
         program_with_args = [program] + self.args
-        env = self.env if tool_found else None
+        env = self.env
+        for key in env:
+            #logger.debug('This is hidden')
+            #logger.warning('This too')
+            self.logger.info(key + " = " + env[key])
         self.process = subprocess.Popen(
             program_with_args,
             # args=[],
