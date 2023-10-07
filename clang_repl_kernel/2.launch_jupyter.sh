@@ -1,1 +1,1 @@
-python3 -m jupyter notebook
+python3 -m jupyter notebook --debug

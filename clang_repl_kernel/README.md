@@ -2,6 +2,7 @@ Clang-Repl kernel for Jupyter
 ===========
 
 A simple Jupyter kernel for C/C++ using Clang-Repl.
+It works on Windows and Linux. (MacOS is not tested)
 
 CAUTION
 -------
@@ -11,12 +12,18 @@ You need to fix LineEditor.h file.
 Put ::fflush(Data->Out); after ::fprintf(Data->Out, "%s", Prompt.c_str()); in LineEditor::readLine()
 And rebuild it and put it on PATH or {package installed directory}/{platform}.
 
-OR download https://github.com/ormastes/jupyter_kernels/blob/main/clang_repl_kernel/clang_repl_kernel/Windows/clang-repl.exe
-And put it on PATH or {package installed directory}/{platform}. (You may need to rename it to clang-repl.exe)
+OR **download** one of 
+windows: https://github.com/ormastes/jupyter_kernels/blob/main/clang_repl_kernel/clang_repl_kernel/Windows/clang-repl.exe
+linux: https://github.com/ormastes/jupyter_kernels/blob/main/clang_repl_kernel/clang_repl_kernel/Linux/clang-repl
+And put it on PATH or **{package installed directory}/{platform}**. (You may need to rename it to clang-repl.exe or clang-repl)
+However, you need to **install** 
+windows: Visual Studio 2022 c++ (https://visualstudio.microsoft.com/downloads/)
+linux: build-essential (sudo apt install build-essential, git clone https://github.com/llvm/llvm-project.git)
 
 > package installed directory
 > - Windows: C:\Users\{user}\AppData\Local\Programs\Python\Python{version}\Lib\site-packages\clang_repl_kernel
 > - Linux: /usr/local/lib/python{version}/dist-packages/clang_repl_kernel
+>   - or /home/{user}/.local/lib/python{version}/site-packages/clang_repl_kernel/
 > - MacOS: /Library/Frameworks/Python.framework/Versions/{version}/lib/python{version}/site-packages/clang_repl_kernel
 
 > platform
@@ -40,6 +47,36 @@ And put it on PATH or {package installed directory}/{platform}. (You may need to
 
        std::string Line;
        do {
+```
+
+Trouble shot
+------------
+When you see 
+```bash
+/usr/include/stdio.h:33:10: fatal error: 'stddef.h' file not found
+   33 | #include <stddef.h>
+      |          ^~~~~~~~~~
+Segmentation fault
+```
+put path include 'stddef.h' file like and uninstall and reinstall clang-repl-kernel
+(You need to change llvm-18 to your llvm)
+```bash
+export CPLUS_INCLUDE_PATH=/usr/lib/llvm-18/lib/clang/18/include/
+pip uninstall clang_repl_kernel
+pip install clang_repl_kernel
+```
+
+When you see
+```bash
+ModuleNotFoundError: No module named 'ipykernel'
+```
+
+Use venv or conda environment and install notebook
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install notebook
+pip -r requirements.txt
 ```
 
 From Pip to install
@@ -71,7 +108,8 @@ Select kernel ''Clang-Repl (C++xx)'' to start a new notebook. (XX is the version
 **Console frontends**: To use it with the console frontends, add ``--kernel clang_repl_cppXX`` to their command line arguments.
 (XX is the version of C++ you want to use)
 
-It fully checked on Windows 11 with clang 18.0.0 and Python 3.11.5
+It fully checked on Windows 11 with clang 18.0.0, Python 3.11.5 and notebook 7.0.4.
+It fully checked on Ubuntu 20.04 with build_essential, clang 18.0.0, Python 3.10.22 and notebook 7.0.4.
 
 Reference
 ---------
