@@ -1,4 +1,5 @@
 import asyncio
+from ipykernel.kernelbase import Kernel
 import errno
 from enum import Enum
 from subprocess import check_output
@@ -8,7 +9,7 @@ import sys
 import platform
 import logging
 
-from ipykernel.ipkernel import Kernel
+
 
 
 def is_tool(name):
