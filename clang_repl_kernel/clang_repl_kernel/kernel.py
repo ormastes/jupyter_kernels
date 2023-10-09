@@ -53,14 +53,19 @@ class ShellStatus(Enum):
 
 
 class ClangReplConfig:
-    BIN_WIN = 'clang-repl.exe'
-    BIN_DEFAULT = 'clang-repl'
+    DLIB = 'libclang.so'
+    BIN = 'clang-repl'
+    BIN_CLANG = 'clang'
     PYTHON_EXE = 'python3'
     if platform.system() == 'Windows':
-        BIN = BIN_WIN
+        DLIB = 'libclang.dll'
+        BIN = 'clang-repl.exe'
+        BIN_CLANG = 'clang.exe'
         PYTHON_EXE = 'python.exe'
+    elif platform.system() == 'Darwin':
+        DLIB = 'libclang.dylib'
     else:
-        BIN = BIN_DEFAULT
+        pass
     BIN_REL_DIR = platform.system()
     BIN_REL_PATH = os.path.join(BIN_REL_DIR, BIN)
     BIN_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), platform.system())
@@ -68,8 +73,8 @@ class ClangReplConfig:
     BANNER_NAME = 'clang-repl'
     PREFER_BUNDLE = True  # if platform.system() == 'Windows' else False
 
-
 class Shell:
+    env = os.environ.copy()
     def __init__(self, bin_path='Windows\\clang-repl.exe', banner_name='clang-repl'):
         self.process = None
         self.bin_path = bin_path
@@ -77,7 +82,7 @@ class Shell:
         self.banner_bytes = self.banner.encode('utf-8')
         self.banner_cont = banner_name + '...   '
         self.banner_cont_bytes = self.banner_cont.encode('utf-8')
-        self.env = os.environ.copy()
+        self.env = Shell.env
         self.tool_found = None
         self._prog = None
         self.loop = None
@@ -121,10 +126,10 @@ class Shell:
 
         program_with_args = [program] + self.args
         env = self.env
-        for key in env:
+        #for key in env:
             #logger.debug('This is hidden')
             #logger.warning('This too')
-            self.logger.info(key + " = " + env[key])
+            #self.logger.info(key + " = " + env[key])
         self.process = subprocess.Popen(
             program_with_args,
             # args=[],
