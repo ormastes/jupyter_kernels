@@ -4,6 +4,48 @@ Clang-Repl kernel for Jupyter
 A simple Jupyter kernel for C/C++ using Clang-Repl.
 It works on Windows and Linux. (MacOS is not tested)
 
+See: [Clang-Repl](https://clang.llvm.org/docs/ClangRepl.html)
+
+
+Please use Python 3.11 or higher. (3.12 is recommended)
+
+* Windows 11
+python3 3.12.0
+Selected Jupyter core packages...
+IPython          : 8.16.1
+ipykernel        : 6.25.2
+ipywidgets       : not installed
+jupyter_client   : 8.4.0
+jupyter_core     : 5.4.0
+jupyter_server   : 2.7.3
+jupyterlab       : 4.0.7
+nbclient         : 0.8.0
+nbconvert        : 7.9.2
+nbformat         : 5.9.2
+notebook         : 7.0.5
+qtconsole        : not installed
+traitlets        : 5.11.2
+
+* Ubuntu 22.04
+python3 3.12
+IPython          : 8.16.1
+ipykernel        : 6.25.2
+ipywidgets       : not installed
+jupyter_client   : 8.4.0
+jupyter_core     : 5.4.0
+jupyter_server   : 2.7.3
+jupyterlab       : 4.0.7
+nbclient         : 0.8.0
+nbconvert        : 7.9.2
+nbformat         : 5.9.2
+notebook         : 7.0.5
+qtconsole        : not installed
+traitlets        : 5.11.2
+  
+See: [How to Install Python 3.12 on Ubuntu 22.04 - LinuxTuto](https://www.linuxtuto.com/how-to-install-python-3-12-on-ubuntu-22-04/)
+See: [Setting the Default python to python3 | Baeldung on Linux](https://www.baeldung.com/linux/default-python3)
+
+
 CAUTION
 -------
 
