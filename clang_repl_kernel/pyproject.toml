@@ -20,7 +20,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "ipykernel",
     "jupyter_client",
@@ -52,7 +52,7 @@ include = [
 exclude = [
     "/clang_repl_kernel/Windows",
     "/clang_repl_kernel/Linux",
-    "/clang_repl_kernel//Darwin",
+    "/clang_repl_kernel/Darwin",
 ]
 
 [tool.hatch.build.targets.wheel.shared-data]
