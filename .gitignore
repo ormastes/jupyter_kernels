@@ -10,3 +10,11 @@
 /echo_kernel/my_echo_kernel/__pycache__
 /clang_repl_kernel/clang_repl_kernel/*.bak
 /shell_echo_kernel/shell_echo_kernel/__pycache__
+/clang_repl_kernel/clang_repl_kernel/__pycache__
+/clang_repl_kernel/data_kernelspec
+/clang_repl_kernel/dist
+/clang_repl_kernel/uvenv
+/clang_repl_kernel/venv
+/clang_repl_kernel/.ipynb_checkpoints
+/clang_repl_kernel/__pycache__
+/clang_repl_kernel/.idea
