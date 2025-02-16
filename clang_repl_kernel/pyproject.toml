@@ -53,6 +53,8 @@ exclude = [
     "/clang_repl_kernel/Windows",
     "/clang_repl_kernel/Linux",
     "/clang_repl_kernel/Darwin",
+    "/clang_repl_kernel/clang",
+    "/clang_repl_kernel/dll",
 ]
 
 [tool.hatch.build.targets.wheel.shared-data]

@@ -11,6 +11,8 @@
 /clang_repl_kernel/clang_repl_kernel/*.bak
 /shell_echo_kernel/shell_echo_kernel/__pycache__
 /clang_repl_kernel/clang_repl_kernel/__pycache__
+/clang_repl_kernel/clang_repl_kernel/clang/*
+/clang_repl_kernel/clang_repl_kernel/dll/*
 /clang_repl_kernel/data_kernelspec
 /clang_repl_kernel/dist
 /clang_repl_kernel/uvenv

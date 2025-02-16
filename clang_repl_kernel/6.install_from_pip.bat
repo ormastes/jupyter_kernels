@@ -1,1 +1,1 @@
-python -m pip install  -U clang_repl_kernel
+python -m pip install -U clang_repl_kernel

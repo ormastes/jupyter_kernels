@@ -11,7 +11,6 @@ import logging
 
 
 
-
 def is_tool(name):
     try:
         import subprocess, os
@@ -29,9 +28,22 @@ def find_prog(prog):
         return prog, False
     # file part of prog
     prog = os.path.basename(prog)
-    embedded_prog = os.path.join(os.path.dirname(os.path.realpath(__file__)), platform.system(), prog)
-    if os.path.isfile(embedded_prog) and os.path.exists(embedded_prog):
-        return embedded_prog, False
+
+    os_dir = None
+    if platform.system() == "Windows":
+        # find first directory start with 'Win'
+        for dir in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
+            if dir.startswith('Win') and os.path.isdir(os.path.join(ClangReplConfig.CLANG_BASE_DIR,dir)):
+                os_dir = dir
+                break
+    else:
+        os_dir = platform.system()
+
+    if os_dir is not None:
+        embedded_prog = os.path.join(ClangReplConfig.CLANG_BASE_DIR, os_dir, "bin", prog)
+        if os.path.isfile(embedded_prog) and os.path.exists(embedded_prog):
+            return embedded_prog, False
+    
     if is_tool(prog):
         cmd = "where" if platform.system() == "Windows" else "which"
         out = check_output([cmd, prog])
@@ -51,31 +63,137 @@ class ShellStatus(Enum):
     CONTINUE = 1
     LOGGING = 2
 
+class PlatformPath:
+    class Platform(Enum):
+        Linux = 0
+        Windows = 1
+        MacOS = 2
+    class BIT(Enum):
+        BIT64 = 0
+        BIT32 = 1
+
+    INSTALL_PATH =  [
+        ['Lin64', 'Lin32'],
+        ['WinMG64', 'WinMG32'],
+        ['App64', 'App32']
+    ]
+
+    PYTHON_DLL_PATH = [
+        ['Lin64', 'Lin32'],
+        ['Win64', 'Win32'],
+        ['App64', 'App32']
+    ]
+
+
+    PATH = [
+        ['i686-linux-gnu', 'x86_64-linux-gnu'],
+        ['i686-w64-mingw32', 'x86_64-w64-mingw32'],
+        ['i686-apple-darwin', 'x86_64-apple-darwin']
+    ]
 
 class ClangReplConfig:
-    DLIB = 'libclang.so'
+    DLIB = ['libclang.so', 'libc.so', 'libstdc++.so', 'libunwind.so', 'libpthread.so']
+    PYTHON_CLANG_LIB = 'libclang.so'
+    HEADERS = ['iostream']
     BIN = 'clang-repl'
     BIN_CLANG = 'clang'
     PYTHON_EXE = 'python3'
+    DYLIB_PATH_ENV= 'LD_LIBRARY_PATH'
+    PLATFORM_NAME_ENUM = PlatformPath.Platform.Linux
     if platform.system() == 'Windows':
-        DLIB = 'libclang.dll'
+        DLIB = ['libclang-cpp.dll', 'ucrtbase.dll', 'msvcrt.dll', 'libc++.dll', 'libunwind.dll', 'libwinpthread-1.dll']
+        PYTHON_CLANG_LIB = 'libclang.dll'
         BIN = 'clang-repl.exe'
         BIN_CLANG = 'clang.exe'
         PYTHON_EXE = 'python.exe'
+        SCRIPT_EXT = '.bat'
+        DYLIB_PATH_ENV = 'PATH'
+        PLATFORM_NAME_ENUM = PlatformPath.Platform.Windows
     elif platform.system() == 'Darwin':
-        DLIB = 'libclang.dylib'
+        DLIB = ['libclang.dylib', 'libc.dylib', 'libstdc++.dylib', 'libunwind.dylib', 'libpthread.dylib']
+        PYTHON_CLANG_LIB = 'libclang.dylib'
+        DYLIB_PATH_ENV = 'DYLD_LIBRARY_PATH'
+        PLATFORM_NAME_ENUM = PlatformPath.Platform.MacOS
     else:
         pass
-    BIN_REL_DIR = platform.system()
-    BIN_REL_PATH = os.path.join(BIN_REL_DIR, BIN)
-    BIN_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), platform.system())
-    BIN_PATH = os.path.join(BIN_DIR, BIN)
+    CLANG_BASE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'clang')
+    if not os.path.exists(CLANG_BASE_DIR):
+        os.makedirs(CLANG_BASE_DIR)
+    PYTHON_CLANG_DLL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dll')
     BANNER_NAME = 'clang-repl'
     PREFER_BUNDLE = True  # if platform.system() == 'Windows' else False
+    #BIN_DIR = os.path.join(CLANG_BASE_DIR, platform.system())
+    #BIN_PATH = os.path.join(BIN_DIR, BIN)
+    _platform = None
+    PLATFORM_BIT = None
+
+    @staticmethod
+    def platform():
+        return ClangReplConfig._platform
+    
+    @staticmethod
+    def set_platform(platform):
+        ClangReplConfig._platform = platform
+        if ("32" in platform):
+            ClangReplConfig.PLATFORM_BIT = PlatformPath.BIT.BIT32
+        else:
+            ClangReplConfig.PLATFORM_BIT = PlatformPath.BIT.BIT64
+
+    @staticmethod
+    def get_install_dir():
+        return os.path.join(ClangReplConfig.CLANG_BASE_DIR, ClangReplConfig.platform())
+    @staticmethod
+    def get_bin_dir():
+        return os.path.join(ClangReplConfig.get_install_dir(), 'bin')
+    @staticmethod
+    def get_bin_path():
+        return os.path.join(ClangReplConfig.get_bin_dir(), ClangReplConfig.BIN)
+    @staticmethod
+    def get_dynlib_dir():
+        bin_dir = ClangReplConfig.get_bin_dir()
+        assert ClangReplConfig.PLATFORM_BIT is not None
+        sub_bin_dir = bin_dir+"/../"+ PlatformPath.PATH[ClangReplConfig.PLATFORM_NAME_ENUM.value][ClangReplConfig.PLATFORM_BIT.value]
+        abs_path =[os.path.abspath(bin_dir), os.path.abspath(sub_bin_dir)]
+        return abs_path
+
+
+    @classmethod
+    def get_available_bin_path(cls):
+        bin_path = []
+        for a_dir in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
+            if os.path.isdir(os.path.join(ClangReplConfig.CLANG_BASE_DIR, a_dir)):
+                bin_path.append(a_dir)
+        return bin_path
+
+    @staticmethod
+    def get_python_bits():
+        bits, _ = platform.architecture()
+        if bits == '32bit':
+            return PlatformPath.BIT.BIT32
+        return PlatformPath.BIT.BIT64
+
+    @staticmethod
+    def get_default_platform():
+        platformdirs = PlatformPath.PATH[ClangReplConfig.PLATFORM_NAME_ENUM.value]
+        if len(ClangReplConfig.get_available_bin_path()) == 0:
+            import platform
+            bits, _ = platform.architecture()
+            if bits == '32bit':
+                return platformdirs[PlatformPath.BIT.BIT32.value]
+            return platformdirs[PlatformPath.BIT.BIT64.value]
+
+        for bin_path in ClangReplConfig.get_available_bin_path():
+            if platformdirs[PlatformPath.BIT.BIT64.value] in bin_path:
+                return bin_path
+            if platformdirs[PlatformPath.BIT.BIT32.value] in bin_path:
+                return bin_path
+
+        return ClangReplConfig.get_available_bin_path()[0]
+
 
 class Shell:
     env = os.environ.copy()
-    def __init__(self, bin_path='Windows\\clang-repl.exe', banner_name='clang-repl'):
+    def __init__(self, bin_path, banner_name='clang-repl'):
         self.process = None
         self.bin_path = bin_path
         self.banner = banner_name + '> '
@@ -93,6 +211,16 @@ class Shell:
 
     def __del__(self):
         self.del_loop()
+
+    @staticmethod
+    def get_available_bin_path():
+        # get directory under ClangReplConfig.CLANG_BASE_DIR
+        bin_path = []
+        for a_dir in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
+            if os.path.isdir(os.path.join(ClangReplConfig.CLANG_BASE_DIR, a_dir)):
+                bin_path.append(a_dir)
+        return bin_path
+
 
     async def _del_loop(self):
         if self.process is not None:
@@ -126,6 +254,9 @@ class Shell:
 
         program_with_args = [program] + self.args
         env = self.env
+        program_path = str(os.path.dirname(program)) + os.pathsep + os.getcwd() + os.pathsep
+        if env['PATH'] is not None and not env['PATH'].startswith(program_path):
+            env['PATH'] = program_path + env['PATH']
         #for key in env:
             #logger.debug('This is hidden')
             #logger.warning('This too')
@@ -144,6 +275,14 @@ class Shell:
             outs += decoded
             if self.check_endswith(outs, self.banner):
                 break
+
+        for dylib in ClangReplConfig.DLIB:
+            self.do_execute('%lib ' + dylib+'\n', False)
+            assert self.process.returncode is None
+
+        for header in ClangReplConfig.HEADERS:
+            self.do_execute('#include <' + header+'>\n', False)
+            assert self.process.returncode is None
 
     def run(self):
         program, tool_found = self.prog()
@@ -194,6 +333,7 @@ class Shell:
             outs = bytearray()
             self.process.stdin.write(cur_command.encode('utf-8'))
             self.process.stdin.flush()
+
             while self.process.returncode is None:
                 stdout_data = self.process.stdout.read(1)
                 outs += stdout_data
@@ -258,12 +398,12 @@ class Shell:
 
 
 class BashShell(Shell):
-    def __init__(self, bin_path=ClangReplConfig.BIN_PATH, banner_name=ClangReplConfig.BANNER_NAME):
+    def __init__(self, bin_path, banner_name=ClangReplConfig.BANNER_NAME):
         super().__init__(bin_path, banner_name)
 
 
 class WinShell(Shell):
-    def __init__(self, bin_path=ClangReplConfig.BIN_PATH, banner_name=ClangReplConfig.BANNER_NAME):
+    def __init__(self, bin_path, banner_name=ClangReplConfig.BANNER_NAME):
         super().__init__(bin_path, banner_name)
 
 
@@ -295,10 +435,15 @@ class ClangReplKernel(Kernel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        platforms = ClangReplConfig.get_available_bin_path()
+        if len(platforms) == 0:
+            raise Exception('Cannot find any installed clang for this platform')
+        ClangReplConfig.set_platform(ClangReplConfig.get_default_platform())
+
         if os.name == 'nt':
-            self.my_shell = WinShell()
+            self.my_shell = WinShell(ClangReplConfig.platform())
         else:
-            self.my_shell = BashShell()
+            self.my_shell = BashShell(ClangReplConfig.platform())
 
         self.std_arg = 'c++23'
         for an_input in reversed(sys.argv):
@@ -306,6 +451,12 @@ class ClangReplKernel(Kernel):
                 self.std_arg = an_input[6:]
                 break
         self.my_shell.args = ['--Xcc=-std=' + self.std_arg]
+
+        for dy_libpath in ClangReplConfig.get_dynlib_dir():
+            if not ClangReplConfig.DYLIB_PATH_ENV in self.my_shell.env:
+                self.my_shell.env[ClangReplConfig.DYLIB_PATH_ENV] = ""
+            self.my_shell.env[ClangReplConfig.DYLIB_PATH_ENV] = dy_libpath + os.pathsep + self.my_shell.env[ClangReplConfig.DYLIB_PATH_ENV]
+
         if not ClangReplKernel.ClangReplKernel_InTest:
             self.my_shell.run()
 
@@ -316,19 +467,16 @@ class ClangReplKernel(Kernel):
         self.my_shell.kill_and_run()
         return {"status": "ok", "restart": restart}
 
-    def do_execute(
-            self,
-            code,
-            silent,
-            store_history=True,
-            user_expressions=None,
-            allow_stdin=False,
-            *,
-            cell_id=None):
+    def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False, *, cell_id=None,
+                   **kwargs):
         def send_response(msg):
             stream_content = {'name': 'stdout', 'text': msg}
             self.send_response(self.iopub_socket, 'stream', stream_content)
 
+        if code.strip().startswith('%<<'):
+            code = code.strip()[3:]
+            code = code[:-1] if code.endswith(';') else code
+            code = "std::cout << " + code + " << std::endl;"
         # self.execution_count += 1
         self.my_shell.do_execute(code, send_response)
 

@@ -29,7 +29,7 @@ class EchoKernelTests(jkt.KernelTests):
     file_extension = ".txt"
 
     # code which should write the exact string `hello, world` to STDOUT
-    code_hello_world = '#include<cstdio>\nprintf("hello, world");\n'
+    code_hello_world = '#include<iostream>\nstd::cout << "hello, world" << std::endl;\n'
 
 
 if __name__ == "__main__":

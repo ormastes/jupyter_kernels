@@ -1,13 +1,18 @@
 import argparse
 import json
 import os
+import re
+import subprocess
 import sys
 import shutil
+import urllib
+
 import requests
+import platform
+import zipfile
 
 from jupyter_client.kernelspec import KernelSpecManager
 from tempfile import TemporaryDirectory
-
 from clang_repl_kernel import ClangReplConfig
 
 kernel_json = {
@@ -18,7 +23,7 @@ kernel_json = {
 }
 
 
-def install_my_kernel_spec(user=True, prefix=None, args=None, suffix=None, name_suffix=''):
+def install_my_kernel_spec(user=True, prefix=None, args=None, suffix=None, name_suffix='', platform_system=platform.system()):
     with TemporaryDirectory() as td:
         os.chmod(td, 0o755)  # Starts off as 700, not user readable
         local_kernel_json = kernel_json.copy()
@@ -32,10 +37,10 @@ def install_my_kernel_spec(user=True, prefix=None, args=None, suffix=None, name_
         if len(my_env) == 0:
             print("No environment variables found. Please set CPLUS_INCLUDE_PATH manually")
             local_kernel_json['env']['EMPTY'] = 'True'
-        if False:# local_kernel_json['env']['CPLUS_INCLUDE_PATH'] == '':
+        #if False:# local_kernel_json['env']['CPLUS_INCLUDE_PATH'] == '':
             # get input from user
-            local_kernel_json['env']['CPLUS_INCLUDE_PATH'] = \
-                input("Please enter the path to the C++ include directory (where 'stddef.h is located)\n For example: /usr/lib/llvm-18/lib/clang/18/include : ")
+            #local_kernel_json['env']['CPLUS_INCLUDE_PATH'] = \
+            #    input("Please enter the path to the C++ include directory (where 'stddef.h is located)\n For example: /usr/lib/llvm-18/lib/clang/18/include : ")
 
         with open(os.path.join(td, 'kernel.json'), 'w') as f:
             json.dump(local_kernel_json, f, sort_keys=True)
@@ -48,27 +53,65 @@ def install_my_kernel_spec(user=True, prefix=None, args=None, suffix=None, name_
             except FileNotFoundError:
                 print("Custom logo files not found. Default logos will be used.")
 
-        install_bundles()
+        clang_repl_file = 'clang_repl' + suffix
+        install_bundles(platform_system)
 
-        KernelSpecManager().install_kernel_spec(td, 'clang_repl' + suffix, user=user, prefix=prefix)
+        KernelSpecManager().install_kernel_spec(td, clang_repl_file, user=user, prefix=prefix)
 
 
-def install_bundles():
+def get_filename_from_response(url):
+    response = requests.head(url, allow_redirects=True)
+
+    # 1. Check if Content-Disposition is provided
+    content_disp = response.headers.get("Content-Disposition")
+    if content_disp:
+        # Attempt to extract filename="..." from Content-Disposition
+        match = re.search(r'filename="([^"]+)"', content_disp)
+        if match:
+            return match.group(1)
+
+    return "downloaded.file"
+
+def install_bundles(platform_system):
+    if platform_system == 'Windows':
+        platform_system = 'WinMG64'
+    elif platform_system == 'Linux':
+        platform_system = 'Lin64'
+
     # currently does not work. See https://gist.github.com/fkraeutli/66fa741d9a8c2a6a238a01d17ed0edc5 for details
-    if False:  # not os.path.exists(ClangReplConfig.BIN_PATH):
-        url = "https://raw.githubusercontent.com/ormastes/jupyter_kernels/main/clang_repl_kernel/clang_repl_kernel/"\
-              + ClangReplConfig.BIN_REL_DIR + "/" \
-              + ClangReplConfig.BIN
+    files = {
+        'WinMG32': 'https://mega.nz/file/iU0W2CBK#gIw33d3aP0G_CYJz8cokXHqlCDmOS9VGX91HTmjOB7M',
+        'WinMG64': 'https://mega.nz/file/jdEg2bBK#faSU0VkFd8izmq7Ydzf6dAHxau1qxZ2aPZKt-Ow7PIo',
+        'Lin64': 'https://mega.nz/folder/iFdXmb6L#RKO8HmgjgVj3Mv3M1LYE7g/file/fN9EkbrK',
+        'Lin32': 'https://mega.nz/folder/iFdXmb6L#RKO8HmgjgVj3Mv3M1LYE7g/file/fN9EkbrK',
+    }
+
+    ClangReplConfig.set_platform(ClangReplConfig.get_default_platform())
+    if not os.path.exists(ClangReplConfig.get_bin_path()):
+        url = files[platform_system]
+        zip_filename = platform_system+".zip"
+        extract_dir = ClangReplConfig.get_install_dir()
         print("Downloading clang_repl binary from " + url)
-        req = requests.get(url, stream=True)
-        if req.status_code == 200:
+        try:
+            #subprocess.run(["mega-get.bat", files[platform_system], platform_system+".zip"]) add current env path
+            env = os.environ.copy()
+            response = subprocess.run(["mega-get"+ClangReplConfig.SCRIPT_EXT, url, zip_filename], env=env)
+        except Exception as e:
+            print("Mega CLI not found. Please install it from https://mega.io/cmd#downloadapps")
+            print("May need path to C:/Users/[USERNAME]/AppData/Local/MEGAcmd")
+            return
+
+        if response.returncode == 0 : # response.status_code == 200:
             print("Download successful")
-            os.makedirs(ClangReplConfig.BIN_DIR, exist_ok=True)
-            with open(ClangReplConfig.BIN_PATH, "wb") as _fh:
-                req.raw.decode_content = True
-                shutil.copyfileobj(req.raw, _fh)
+
+            # Unzip the contents into the extract_dir
+            with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
+                zip_ref.extractall(extract_dir)
+            print("Unzip complete. Files extracted to:", extract_dir)
+            # Remove the zip file
+            os.remove(zip_filename)
         else:
-            print("Download failed with status code " + str(req.status_code))
+            print("Download failed with status code " + str(response.returncode)) #str(response.status_code))
             print("Please download the binary manually and place it in default path.")
             print("The clang-repl binary can be build from source. See https://clang.llvm.org/docs/ClangRepl.html")
 
@@ -89,6 +132,9 @@ def main(argv=None):
     ap.add_argument('--prefix',
                     help="Install to the given prefix. "
                          "Kernelspec will be installed in {PREFIX}/share/jupyter/kernels/")
+    ap.add_argument('--platform-system', 
+                    help="Platform system (Linux, Windows, Win_i386_MT, Win_i386_MD, Win_x64_MT, Win_x64_MD)", 
+                    default=platform.system())
     args = ap.parse_args(argv)
 
     if args.sys_prefix:
@@ -97,13 +143,13 @@ def main(argv=None):
         args.user = True
 
     install_my_kernel_spec(user=args.user, prefix=args.prefix,
-                           args=['--std=c++14'], suffix='_cpp14', name_suffix=' (C++14)')
+                           args=['--std=c++14'], suffix='_cpp14', name_suffix=' (C++14)', platform_system=args.platform_system)
     install_my_kernel_spec(user=args.user, prefix=args.prefix,
-                           args=['--std=c++17'], suffix='_cpp17', name_suffix=' (C++17)')
+                           args=['--std=c++17'], suffix='_cpp17', name_suffix=' (C++17)', platform_system=args.platform_system)
     install_my_kernel_spec(user=args.user, prefix=args.prefix,
-                           args=['--std=c++20'], suffix='_cpp20', name_suffix=' (C++20)')
+                           args=['--std=c++20'], suffix='_cpp20', name_suffix=' (C++20)', platform_system=args.platform_system)
     install_my_kernel_spec(user=args.user, prefix=args.prefix,
-                           args=['--std=c++23'], suffix='_cpp23', name_suffix=' (C++23)')
+                           args=['--std=c++23'], suffix='_cpp23', name_suffix=' (C++23)', platform_system=args.platform_system)
 
 
 if __name__ == '__main__':
