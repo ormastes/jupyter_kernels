@@ -66,18 +66,25 @@ def test_install_bundles(setup_dir, kernel):
     assert False
     if os.path.exists(ClangReplConfig.get_bin_path()):
         os.remove(ClangReplConfig.get_bin_path())
-    install_bundles()
+    install_bundles(platform.system(), None)
     assert os.path.exists(ClangReplConfig.get_bin_path())
 
 @pytest.mark.skip(reason="should not used in CI")
 def test_install_bundles_winmg64():
-    install_bundles('WinMG64')
+    install_bundles('WinMG64', None)
     assert os.path.exists(ClangReplConfig.get_bin_path()), "WinMG64 installation failed"
 
 @pytest.mark.skip(reason="should not used in CI")
 def test_install_bundles_winmg32():
-    install_bundles('WinMG32')
+    install_bundles('WinMG32', None)
     assert os.path.exists(ClangReplConfig.get_bin_path()), "WinMG32 installation failed"
+
+@pytest.mark.skip(reason="should not used in CI")
+# need to run test_install_bundles_winmg32 first
+@pytest.mark.dependency(depends=["test_install_bundles_winmg32"])
+def test_install_existing():
+    install_bundles(None, ClangReplConfig.CLANG_BASE_DIR + '/WinMG32/clang-repl.exe')
+    assert os.path.exists(ClangReplConfig.get_install_clang_config_file()), "install existing clang-repl failed"
 
 def test_new(setup_dir, kernel):
     # Create an instance of the kernel

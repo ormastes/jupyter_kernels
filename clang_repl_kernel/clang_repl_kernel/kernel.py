@@ -93,6 +93,9 @@ class PlatformPath:
 
 class ClangReplConfig:
     DLIB = ['libclang.so', 'libc.so', 'libstdc++.so', 'libunwind.so', 'libpthread.so']
+    USER_DEFINED_BIN_PATH = None
+    USER_DEFINED_INSTALL_PATH = None
+    INSTALL_CLANG_CONFIG_FILE_NAME = 'installed_clang.txt'
     PYTHON_CLANG_LIB = 'libclang.so'
     HEADERS = ['iostream']
     BIN = 'clang-repl'
@@ -128,6 +131,10 @@ class ClangReplConfig:
     PLATFORM_BIT = None
 
     @staticmethod
+    def get_install_clang_config_file():
+        return os.path.join(ClangReplConfig.CLANG_BASE_DIR, ClangReplConfig.INSTALL_CLANG_CONFIG_FILE_NAME)
+
+    @staticmethod
     def platform():
         return ClangReplConfig._platform
     
@@ -140,11 +147,25 @@ class ClangReplConfig:
             ClangReplConfig.PLATFORM_BIT = PlatformPath.BIT.BIT64
 
     @staticmethod
+    def set_user_defined_bin_path(bin_path):
+        # remove rightmost '//' or '\\' if exists
+        if bin_path.endswith('/') or bin_path.endswith('\\'):
+            bin_path = bin_path[:-1]
+        ClangReplConfig.USER_DEFINED_BIN_PATH = bin_path
+        ClangReplConfig.USER_DEFINED_INSTALL_PATH = os.path.dirname(bin_path)
+
+    @staticmethod
     def get_install_dir():
-        return os.path.join(ClangReplConfig.CLANG_BASE_DIR, ClangReplConfig.platform())
+        if ClangReplConfig.USER_DEFINED_INSTALL_PATH is not None:
+            return ClangReplConfig.USER_DEFINED_INSTALL_PATH
+        else:
+            return os.path.join(ClangReplConfig.CLANG_BASE_DIR, ClangReplConfig.platform())
     @staticmethod
     def get_bin_dir():
-        return os.path.join(ClangReplConfig.get_install_dir(), 'bin')
+        if ClangReplConfig.USER_DEFINED_BIN_PATH is not None:
+            return ClangReplConfig.USER_DEFINED_BIN_PATH
+        else:
+            return os.path.join(ClangReplConfig.get_install_dir(), 'bin')
     @staticmethod
     def get_bin_path():
         return os.path.join(ClangReplConfig.get_bin_dir(), ClangReplConfig.BIN)
@@ -174,6 +195,9 @@ class ClangReplConfig:
 
     @staticmethod
     def get_default_platform():
+        if ClangReplConfig.USER_DEFINED_BIN_PATH is not None:
+            return ClangReplConfig.USER_DEFINED_BIN_PATH
+
         platformdirs = PlatformPath.PATH[ClangReplConfig.PLATFORM_NAME_ENUM.value]
         if len(ClangReplConfig.get_available_bin_path()) == 0:
             import platform
@@ -435,9 +459,14 @@ class ClangReplKernel(Kernel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        platforms = ClangReplConfig.get_available_bin_path()
-        if len(platforms) == 0:
-            raise Exception('Cannot find any installed clang for this platform')
+        if os.path.exists(ClangReplConfig.get_install_clang_config_file()):
+            with open(ClangReplConfig.get_install_clang_config_file(), 'r') as f:
+                ClangReplConfig.set_user_defined_bin_path(f.read().strip())
+        else:
+            platforms = ClangReplConfig.get_available_bin_path()
+            if len(platforms) == 0:
+                raise Exception('Cannot find any installed clang for this platform')
+
         ClangReplConfig.set_platform(ClangReplConfig.get_default_platform())
 
         if os.name == 'nt':
