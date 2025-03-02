@@ -1,0 +1,7 @@
+{
+    "python.testing.pytestArgs": [
+        "clang_repl_kernel"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
