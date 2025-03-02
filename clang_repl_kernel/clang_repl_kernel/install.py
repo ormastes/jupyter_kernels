@@ -2,14 +2,11 @@ import argparse
 import json
 import os
 import re
-import subprocess
 import sys
 import shutil
-import urllib
 
 import requests
 import platform
-import zipfile
 
 from jupyter_client.kernelspec import KernelSpecManager
 from tempfile import TemporaryDirectory

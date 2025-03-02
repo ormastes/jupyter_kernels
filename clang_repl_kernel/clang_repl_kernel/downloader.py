@@ -1,6 +1,7 @@
 import requests
 from xml.etree import ElementTree as ET
 import os
+import zipfile
 
 # The WebDAV URL to list files from
 url = "http://webdav.yoonhome.com/PublicShare/llvm/18.1.8"
@@ -57,7 +58,6 @@ def download(file_name, extract_dir):
 
 
     # extract the downloaded file
-    import zipfile
     with zipfile.ZipFile(download_file, 'r') as zip_ref:
         zip_ref.extractall(extract_dir)
 

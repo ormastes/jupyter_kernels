@@ -48,48 +48,7 @@ See: [Setting the Default python to python3 | Baeldung on Linux](https://www.bae
 
 CAUTION
 -------
-
-There is a problem on Windows with Clang-Repl when work with Python.
-You need to fix LineEditor.h file.
-Put ::fflush(Data->Out); after ::fprintf(Data->Out, "%s", Prompt.c_str()); in LineEditor::readLine()
-And rebuild it and put it on PATH or {package installed directory}/{platform}.
-
-OR **download** one of 
-windows: https://github.com/ormastes/jupyter_kernels/blob/main/clang_repl_kernel/clang_repl_kernel/Windows/clang-repl.exe
-linux: https://github.com/ormastes/jupyter_kernels/blob/main/clang_repl_kernel/clang_repl_kernel/Linux/clang-repl
-And put it on PATH or **{package installed directory}/{platform}**. (You may need to rename it to clang-repl.exe or clang-repl)
-However, you need to **install** 
-windows: Visual Studio 2022 c++ (https://visualstudio.microsoft.com/downloads/)
-linux: build-essential (sudo apt install build-essential, git clone https://github.com/llvm/llvm-project.git)
-
-> package installed directory
-> - Windows: C:\Users\{user}\AppData\Local\Programs\Python\Python{version}\Lib\site-packages\clang_repl_kernel
-> - Linux: /usr/local/lib/python{version}/dist-packages/clang_repl_kernel
->   - or /home/{user}/.local/lib/python{version}/site-packages/clang_repl_kernel/
-> - MacOS: /Library/Frameworks/Python.framework/Versions/{version}/lib/python{version}/site-packages/clang_repl_kernel
-
-> platform
-> - Windows: Windows
-> - Linux: Linux
-> - MacOS: Darwin
-
-```diff
-     llvm/lib/LineEditor/LineEditor.cpp | 1 +
-     1 file changed, 1 insertion(+)
-
-    diff --git a/llvm/lib/LineEditor/LineEditor.cpp b/llvm/lib/LineEditor/LineEditor.cpp
-    index bb408411a330..15d3ba4dc834 100644
-    --- a/llvm/lib/LineEditor/LineEditor.cpp
-    +++ b/llvm/lib/LineEditor/LineEditor.cpp
-    @@ -294,6 +294,7 @@ void LineEditor::loadHistory() {}
-
-     std::optional<std::string> LineEditor::readLine() const {
-       ::fprintf(Data->Out, "%s", Prompt.c_str());
-    +  ::fflush(Data->Out);
-
-       std::string Line;
-       do {
-```
+currently windows printf() not working. (It will be fixed soon). please use cout instead of printf().
 
 Trouble shot
 ------------

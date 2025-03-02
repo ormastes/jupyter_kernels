@@ -3,5 +3,6 @@ pytest~=7.4.2
 hatchling~=1.27.0
 asyncio~=3.4.3
 traitlets~=5.11.2
-requests~=2.31.0
+requests~=2.32.0
 ipython~=8.16.1
+jupyter_client>=6.1.0
