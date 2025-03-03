@@ -8,7 +8,7 @@ import os
 import sys
 import platform
 import logging
-
+from clang_repl_kernel import is_done
 
 
 def is_tool(name):
@@ -182,7 +182,8 @@ class ClangReplConfig:
     def get_available_bin_path(cls):
         bin_path = []
         for a_dir in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
-            if os.path.isdir(os.path.join(ClangReplConfig.CLANG_BASE_DIR, a_dir)):
+            a_dir_pullpath = os.path.join(ClangReplConfig.CLANG_BASE_DIR, a_dir)
+            if os.path.isdir(a_dir_pullpath) and is_done(a_dir_pullpath):
                 bin_path.append(a_dir)
         return bin_path
 

@@ -34,16 +34,47 @@ def list():
         print("Error:", response.status_code)
         print(response.text)
 
+def get_dll_or_download(platform, file_name, extract_dir):
+    extract_full_path = os.path.join(extract_dir, file_name)
+    if os.path.exists(extract_full_path) and os.path.isfile(extract_full_path) and os.path.getsize(extract_full_path) > 0:
+        return extract_full_path
+
+    print("Downloading clang_repl binary from " + platform+" "+file_name)
+    # URL of the file you want to download
+    file_url = f"http://webdav.yoonhome.com/PublicShare/llvm_lib/{platform}/{file_name}"
+    download_file = _download(extract_dir, file_name, file_url)
+
+def is_done(extract_dir):
+    done_file = os.path.join(extract_dir, "done")
+    return os.path.exists(done_file)
+
+
 def download(file_name, extract_dir):
     print("Downloading clang_repl binary from " + file_name)
     # URL of the file you want to download
     file_url = f"http://webdav.yoonhome.com/PublicShare/llvm/18.1.8/{file_name}"
+    download_file = _download(extract_dir, file_name, file_url)
+
+    # extract the downloaded file
+    with zipfile.ZipFile(download_file, 'r') as zip_ref:
+        zip_ref.extractall(extract_dir)
+
+    # Remove the zip file
+    os.remove(download_file)
+
+    # write done file
+    done_file = os.path.join(extract_dir, "done")
+    with open(done_file, "w") as f:
+        f.write("done")
+
+    return download_file
+
+
+def _download(extract_dir, file_name, file_url):
     # Perform a GET request with streaming enabled (for large files)
     response = requests.get(file_url, auth=auth, stream=True)
-
     if not os.path.exists(extract_dir):
         os.makedirs(extract_dir)
-
     download_file = os.path.join(extract_dir, file_name)
     if response.status_code == 200:
         with open(download_file, "wb") as f:
@@ -55,11 +86,4 @@ def download(file_name, extract_dir):
     else:
         print("Failed to download file:", response.status_code)
         print(response.text)
-
-
-    # extract the downloaded file
-    with zipfile.ZipFile(download_file, 'r') as zip_ref:
-        zip_ref.extractall(extract_dir)
-
-    # Remove the zip file
-    os.remove(download_file)
+    return download_file

@@ -10,7 +10,7 @@ import platform
 
 from jupyter_client.kernelspec import KernelSpecManager
 from tempfile import TemporaryDirectory
-from clang_repl_kernel import ClangReplConfig, download
+from clang_repl_kernel import ClangReplConfig, download, is_done
 
 kernel_json = {
     "argv": [ClangReplConfig.PYTHON_EXE, "-m", "clang_repl_kernel", "-f", "{connection_file}"],
@@ -98,7 +98,7 @@ def install_bundles(platform_system, installed_clang_executable):
     if os.path.exists(ClangReplConfig.get_install_clang_config_file()):
         return
 
-    if not os.path.exists(ClangReplConfig.get_bin_path()):
+    if not is_done(ClangReplConfig.get_install_dir()):
         zip_filename = platform_system+".zip"
         extract_dir = ClangReplConfig.get_install_dir()
         download(zip_filename, extract_dir)
