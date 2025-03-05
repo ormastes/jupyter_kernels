@@ -25,6 +25,7 @@ dependencies = [
     "ipykernel",
     "jupyter_client",
     "traitlets",
+    "tqdm",
 ]
 
 #[project.optional-dependencies]

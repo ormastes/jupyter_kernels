@@ -112,6 +112,13 @@ Select kernel ''Clang-Repl (C++xx)'' to start a new notebook. (XX is the version
 It fully checked on Windows 11 with clang 18.0.0, Python 3.11.5 and notebook 7.0.4.
 It fully checked on Ubuntu 20.04 with build_essential, clang 18.0.0, Python 3.10.22 and notebook 7.0.4.
 
+Install default toolkit for cdoctest
+---------------------
+run next command after install clang_repl_kernel
+```bash
+python -m clang_repl_kernel --install-default-toolchain
+```
+
 Reference
 ---------
 https://github.com/jupyter/echo_kernel

@@ -68,17 +68,33 @@ def get_filename_from_response(url):
 
     return "downloaded.file"
 
-def install_bundles(platform_system, installed_clang_executable):
-
+def update_platform_system(platform_system):
     if platform_system == 'Windows':
         platform_system = 'WinMG64'
     elif platform_system == 'Linux':
         platform_system = 'Lin64'
+    return platform_system
+
+def is_installed_clang_exist(platform_system):
+    platform_system = update_platform_system(platform_system)
 
     if platform_system is None:
         ClangReplConfig.set_platform(ClangReplConfig.get_default_platform())
     else:
         ClangReplConfig.set_platform(platform_system)
+
+    if os.path.exists(ClangReplConfig.get_install_clang_config_file()):
+        return True
+
+    if is_done(ClangReplConfig.get_install_dir()):
+        return True
+
+    return False
+
+
+def install_bundles(platform_system, installed_clang_executable=None):
+    platform_system = update_platform_system(platform_system)
+    clang_installed = is_installed_clang_exist(platform_system)
 
     if installed_clang_executable is not None:
         r_idx = installed_clang_executable.rfind('clang-repl')
@@ -92,13 +108,9 @@ def install_bundles(platform_system, installed_clang_executable):
             os.remove(installed_clang_config_file)
         with open(installed_clang_config_file, 'w') as f:
             f.write(clang_repl_dir)
-
         return
 
-    if os.path.exists(ClangReplConfig.get_install_clang_config_file()):
-        return
-
-    if not is_done(ClangReplConfig.get_install_dir()):
+    if not clang_installed:
         zip_filename = platform_system+".zip"
         extract_dir = ClangReplConfig.get_install_dir()
         download(zip_filename, extract_dir)
