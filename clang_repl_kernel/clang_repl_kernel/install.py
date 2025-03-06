@@ -75,7 +75,8 @@ def update_platform_system(platform_system):
         platform_system = 'Lin64'
     return platform_system
 
-def is_installed_clang_exist(platform_system):
+
+def _is_installed_clang_exist(platform_system):
     platform_system = update_platform_system(platform_system)
 
     if platform_system is None:
@@ -91,10 +92,23 @@ def is_installed_clang_exist(platform_system):
 
     return False
 
+def is_installed_clang_exist(platform_system=None):
+    if platform_system is None:
+        # loop directory to find installed clang
+        for platform_system_path in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
+            if _is_installed_clang_exist(platform_system_path):
+                return True
+        return False
+
+    else:
+        return _is_installed_clang_exist(platform_system)
+
+
 
 def install_bundles(platform_system, installed_clang_executable=None):
     platform_system = update_platform_system(platform_system)
-    clang_installed = is_installed_clang_exist(platform_system)
+    clang_installed = is_installed_clang_exist()
+
 
     if installed_clang_executable is not None:
         r_idx = installed_clang_executable.rfind('clang-repl')
@@ -153,6 +167,6 @@ def main(argv=None):
     install_my_kernel_spec(user=args.user, prefix=args.prefix,
                            args=['--std=c++23'], suffix='_cpp23', name_suffix=' (C++23)', platform_system=args.platform_system, installed_clang_executable=args.installed_clang_executable)
 
-
+is_installed_clang_exist()
 if __name__ == '__main__':
     main()

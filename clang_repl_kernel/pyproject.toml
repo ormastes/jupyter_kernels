@@ -1,6 +1,7 @@
 [build-system]
 requires = [
-    "hatchling", "ipykernel",  "pytest", "traitlets", "jupyter_client", "requests"
+    "hatchling", "ipykernel",  "pytest", "traitlets", "jupyter_client", "requests", "tqdm",
+    "ipython"
 ]
 build-backend = "hatchling.build"
 
@@ -25,7 +26,7 @@ dependencies = [
     "ipykernel",
     "jupyter_client",
     "traitlets",
-    "tqdm",
+    "tqdm"
 ]
 
 #[project.optional-dependencies]
