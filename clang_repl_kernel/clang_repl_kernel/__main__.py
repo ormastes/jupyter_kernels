@@ -23,7 +23,7 @@ if __name__ == '__main__':
                     sys.stdout.write("... ")
                     new_code = sys.stdin.readline().rstrip("\n")
                     code = code[:-1] + new_code
-                if code.strip() == 'exit()':
+                if code.strip() == '%quit':
                     break
                 kernel.do_execute(code, False, custom_send_response=send_response)
             except EOFError:

@@ -93,15 +93,10 @@ def _is_installed_clang_exist(platform_system):
     return False
 
 def is_installed_clang_exist(platform_system=None):
-    if platform_system is None:
-        # loop directory to find installed clang
-        for platform_system_path in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
-            if _is_installed_clang_exist(platform_system_path):
-                return True
-        return False
-
-    else:
-        return _is_installed_clang_exist(platform_system)
+    for platform_system_path in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
+        if _is_installed_clang_exist(platform_system_path):
+            return True
+    return _is_installed_clang_exist(platform_system)
 
 
 
