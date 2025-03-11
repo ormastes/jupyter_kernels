@@ -221,6 +221,7 @@ class Shell:
     def __init__(self, bin_path, banner_name='clang-repl'):
         self.process = None
         self.bin_path = bin_path
+        self.binary = None
         self.banner = banner_name + '> '
         self.banner_bytes = self.banner.encode('utf-8')
         self.banner_cont = banner_name + '...   '
@@ -262,9 +263,9 @@ class Shell:
     def prog(self):
         if self._prog is not None:
             return self._prog, self.tool_found
-        self._prog, self.tool_found = find_prog(self.bin_path)
+        self._prog, self.tool_found = find_prog(self.binary)
         if self._prog is None:
-            raise Exception('Cannot find ' + self.bin_path)
+            raise Exception('Cannot find ' + self.binary)
         return self._prog, self.tool_found
 
     def kill_and_run(self):
@@ -425,11 +426,13 @@ class Shell:
 class BashShell(Shell):
     def __init__(self, bin_path, banner_name=ClangReplConfig.BANNER_NAME):
         super().__init__(bin_path, banner_name)
+        self.binary = 'clang-repl'
 
 
 class WinShell(Shell):
     def __init__(self, bin_path, banner_name=ClangReplConfig.BANNER_NAME):
         super().__init__(bin_path, banner_name)
+        self.binary = 'clang-repl.exe'
 
 
 class ClangReplKernel(Kernel):
@@ -498,10 +501,13 @@ class ClangReplKernel(Kernel):
         return {"status": "ok", "restart": restart}
 
     def do_execute(self, code, silent, store_history=True, user_expressions=None, allow_stdin=False, *, cell_id=None,
+                   custom_send_response=None,
                    **kwargs):
-        def send_response(msg):
+        def _send_response(msg):
             stream_content = {'name': 'stdout', 'text': msg}
             self.send_response(self.iopub_socket, 'stream', stream_content)
+
+        send_response = custom_send_response if custom_send_response is not None else _send_response
 
         if code.strip().startswith('%<<'):
             code = code.strip()[3:]
