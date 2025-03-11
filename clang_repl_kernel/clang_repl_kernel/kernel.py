@@ -422,6 +422,14 @@ class Shell:
     def do_execute(self, command, send_func):
         return self._do_execute(command, send_func)
 
+    def do_execute_sync(self, command):
+        response_message = []
+        def _send_response(msg):
+            response_message.append(msg)
+
+        self.do_execute(command, _send_response)
+        full_message = ''.join(response_message)
+        return full_message
 
 class BashShell(Shell):
     def __init__(self, bin_path, banner_name=ClangReplConfig.BANNER_NAME):
@@ -522,6 +530,24 @@ class ClangReplKernel(Kernel):
             'execution_count': self.execution_count,
             'payload': [],
             'user_expressions': {},
+        }
+
+    def do_execute_sync(self, code):
+
+        if code.strip().startswith('%<<'):
+            code = code.strip()[3:]
+            code = code[:-1] if code.endswith(';') else code
+            code = "std::cout << " + code + " << std::endl;"
+        # self.execution_count += 1
+        output = self.my_shell.do_execute_sync(code)
+
+        return {
+            'status': 'ok',
+            # The base class increments the execution count
+            'execution_count': self.execution_count,
+            'payload': [],
+            'user_expressions': {},
+            'output': output
         }
 
     def do_clear(self):
