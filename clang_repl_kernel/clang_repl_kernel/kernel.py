@@ -8,7 +8,7 @@ import os
 import sys
 import platform
 import logging
-from clang_repl_kernel import is_done
+from . import is_done
 
 
 def is_tool(name):
@@ -68,6 +68,7 @@ class PlatformPath:
         Linux = 0
         Windows = 1
         MacOS = 2
+
     class BIT(Enum):
         BIT64 = 0
         BIT32 = 1
@@ -195,7 +196,7 @@ class ClangReplConfig:
         return PlatformPath.BIT.BIT64
 
     @staticmethod
-    def get_default_platform():
+    def _get_default_platform():
         if ClangReplConfig.USER_DEFINED_BIN_PATH is not None:
             return ClangReplConfig.USER_DEFINED_BIN_PATH
 
@@ -214,6 +215,18 @@ class ClangReplConfig:
                 return bin_path
 
         return ClangReplConfig.get_available_bin_path()[0]
+
+    @staticmethod
+    def get_default_platform():
+        # index of the platform
+        bin_path_platform = ClangReplConfig._get_default_platform()
+        for platformIdx in PlatformPath.Platform:
+            for bitIdx in PlatformPath.BIT:
+                if PlatformPath.PATH[platformIdx.value][bitIdx.value] in bin_path_platform:
+                    return PlatformPath.INSTALL_PATH[platformIdx.value][bitIdx.value]
+        return bin_path_platform
+
+
 
 
 class Shell:

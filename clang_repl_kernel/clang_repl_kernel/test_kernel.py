@@ -1,7 +1,7 @@
 import os
 import platform
 
-from clang_repl_kernel import ClangReplKernel, ClangReplConfig, install_bundles
+from . import ClangReplKernel, ClangReplConfig, install_bundles
 import pytest
 
 

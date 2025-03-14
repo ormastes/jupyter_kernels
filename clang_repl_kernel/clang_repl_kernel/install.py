@@ -10,7 +10,7 @@ import platform
 
 from jupyter_client.kernelspec import KernelSpecManager
 from tempfile import TemporaryDirectory
-from clang_repl_kernel import ClangReplConfig, download, is_done
+from . import ClangReplConfig, download, is_done
 
 kernel_json = {
     "argv": [ClangReplConfig.PYTHON_EXE, "-m", "clang_repl_kernel", "-f", "{connection_file}"],

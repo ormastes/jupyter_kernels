@@ -1,11 +1,11 @@
 from ipykernel.kernelapp import IPKernelApp
-from kernel import ClangReplKernel, ClangReplConfig
-from install import install_bundles
+from . import ClangReplKernel, ClangReplConfig, install_bundles
 import sys
 
 if __name__ == '__main__':
     # when parameter has '--install-default-toolchain' then install the default toolchain
     if '--install-default-toolchain' in sys.argv:
+        print("Installing default toolchain...", ClangReplConfig.platform())
         install_bundles(ClangReplConfig.platform())
         sys.exit(0)
     if '--interactive' in sys.argv:
