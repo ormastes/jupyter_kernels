@@ -11,7 +11,7 @@ import logging
 from . import is_done
 import time
 
-CLANG_REPL_DEBUG = True
+CLANG_REPL_DEBUG = False
 
 LINUX_WORKAROUND = """class printf_streambuf : public std::streambuf {\
 private:\
