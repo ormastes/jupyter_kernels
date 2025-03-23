@@ -3,6 +3,9 @@ from xml.etree import ElementTree as ET
 import os
 import zipfile
 from tqdm import tqdm
+import stat
+import requests
+import platform
 
 # The WebDAV URL to list files from
 url = "http://webdav.yoonhome.com/PublicShare/llvm/18.1.8"
@@ -75,6 +78,18 @@ def download(file_name, extract_dir):
     done_file = os.path.join(extract_dir, "done")
     with open(done_file, "w") as f:
         f.write("done")
+
+    if platform.system() != "Windows":
+        bin_dir = os.path.join(extract_dir, "bin")
+        if os.path.exists(bin_dir):
+            for root, dirs, files in os.walk(bin_dir):
+                for file in files:
+                    filepath = os.path.join(root, file)
+                    # Get current permissions.
+                    current_mode = os.stat(filepath).st_mode
+                    # Add executable bits for user, group, and others.
+                    new_mode = current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                    os.chmod(filepath, new_mode)
 
     return download_file
 

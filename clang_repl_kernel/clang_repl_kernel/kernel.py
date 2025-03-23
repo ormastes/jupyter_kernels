@@ -9,6 +9,63 @@ import sys
 import platform
 import logging
 from . import is_done
+import time
+
+CLANG_REPL_DEBUG = True
+
+LINUX_WORKAROUND = """class printf_streambuf : public std::streambuf {\
+private:\
+    static const int bufferSize = 256;\
+    char buffer[bufferSize];\
+public:\
+    printf_streambuf() {\
+        setp(buffer, buffer + bufferSize - 1);\
+    }\
+protected:\
+    virtual int overflow(int c) override {\
+        if (c != EOF) {\
+            *pptr() = c;\
+            pbump(1);\
+        }\
+        if (flushBuffer() == EOF)\
+            return EOF;\
+        return c;\
+    }\
+    virtual int sync() override {\
+        return flushBuffer();\
+    }\
+private:\
+    int flushBuffer() {\
+        int num = int(pptr() - pbase());\
+        if (num > 0) {\
+            buffer[num] = '\\0';\
+            if (std::printf("%s", buffer) < 0)\
+                return EOF;\
+            setp(buffer, buffer + bufferSize - 1);\
+        }\
+        return 0;\
+    }\
+};
+class printf_ostream : public std::basic_ostream<char> {\
+private:\
+    printf_streambuf psb;\
+public:\
+    printf_ostream() : std::basic_ostream<char>(&psb) {}\
+};
+printf_ostream pcout;
+pcout << std::unitbuf;
+"""
+WINDOW_WORKAROUND = """"""
+MACOS_WORKAROUND = """"""
+workarounds = [LINUX_WORKAROUND, WINDOW_WORKAROUND, MACOS_WORKAROUND]
+
+
+def update_platform_system(platform_system):
+    if platform_system == 'Windows':
+        platform_system = 'WinMG64'
+    elif platform_system == 'Linux':
+        platform_system = 'Lin64'
+    return platform_system
 
 
 def is_tool(name):
@@ -16,7 +73,7 @@ def is_tool(name):
         import subprocess, os
         my_env = os.environ.copy()
         devnull = open(os.devnull)
-        subprocess.Popen([name], stdout=devnull, stderr=devnull,  env=my_env).communicate()
+        subprocess.Popen([name], stdout=devnull, stderr=devnull, env=my_env).communicate()
     except OSError as e:
         if e.errno == errno.ENOENT:
             return False
@@ -33,17 +90,17 @@ def find_prog(prog):
     if platform.system() == "Windows":
         # find first directory start with 'Win'
         for dir in os.listdir(ClangReplConfig.CLANG_BASE_DIR):
-            if dir.startswith('Win') and os.path.isdir(os.path.join(ClangReplConfig.CLANG_BASE_DIR,dir)):
+            if dir.startswith('Win') and os.path.isdir(os.path.join(ClangReplConfig.CLANG_BASE_DIR, dir)):
                 os_dir = dir
                 break
     else:
-        os_dir = platform.system()
+        os_dir = update_platform_system(platform.system())
 
     if os_dir is not None:
         embedded_prog = os.path.join(ClangReplConfig.CLANG_BASE_DIR, os_dir, "bin", prog)
         if os.path.isfile(embedded_prog) and os.path.exists(embedded_prog):
             return embedded_prog, False
-    
+
     if is_tool(prog):
         cmd = "where" if platform.system() == "Windows" else "which"
         out = check_output([cmd, prog])
@@ -63,6 +120,7 @@ class ShellStatus(Enum):
     CONTINUE = 1
     LOGGING = 2
 
+
 class PlatformPath:
     class Platform(Enum):
         Linux = 0
@@ -73,7 +131,7 @@ class PlatformPath:
         BIT64 = 0
         BIT32 = 1
 
-    INSTALL_PATH =  [
+    INSTALL_PATH = [
         ['Lin64', 'Lin32'],
         ['WinMG64', 'WinMG32'],
         ['App64', 'App32']
@@ -85,24 +143,24 @@ class PlatformPath:
         ['App64', 'App32']
     ]
 
-
     PATH = [
-        ['i686-linux-gnu', 'x86_64-linux-gnu'],
-        ['i686-w64-mingw32', 'x86_64-w64-mingw32'],
-        ['i686-apple-darwin', 'x86_64-apple-darwin']
+        ['x86_64-linux-gnu', 'i686-linux-gnu', ],
+        ['x86_64-w64-mingw32', 'i686-w64-mingw32'],
+        ['x86_64-apple-darwin', 'i686-apple-darwin']
     ]
 
+
 class ClangReplConfig:
-    DLIB = ['libclang.so', 'libc.so', 'libstdc++.so', 'libunwind.so', 'libpthread.so']
+    DLIB = ['libc++.so', 'libunwind.so']  # 'libclang.so', 'libc.so','libpthread.so'
     USER_DEFINED_BIN_PATH = None
     USER_DEFINED_INSTALL_PATH = None
     INSTALL_CLANG_CONFIG_FILE_NAME = 'installed_clang.txt'
     PYTHON_CLANG_LIB = 'libclang.so'
-    HEADERS = ['iostream']
+    HEADERS = ['iostream', 'cstdio', 'streambuf']
     BIN = 'clang-repl'
     BIN_CLANG = 'clang'
     PYTHON_EXE = 'python3'
-    DYLIB_PATH_ENV= 'LD_LIBRARY_PATH'
+    DYLIB_PATH_ENV = 'LD_LIBRARY_PATH'
     PLATFORM_NAME_ENUM = PlatformPath.Platform.Linux
     if platform.system() == 'Windows':
         DLIB = ['libclang-cpp.dll', 'ucrtbase.dll', 'msvcrt.dll', 'libc++.dll', 'libunwind.dll', 'libwinpthread-1.dll']
@@ -126,8 +184,8 @@ class ClangReplConfig:
     PYTHON_CLANG_DLL_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dll')
     BANNER_NAME = 'clang-repl'
     PREFER_BUNDLE = True  # if platform.system() == 'Windows' else False
-    #BIN_DIR = os.path.join(CLANG_BASE_DIR, platform.system())
-    #BIN_PATH = os.path.join(BIN_DIR, BIN)
+    # BIN_DIR = os.path.join(CLANG_BASE_DIR, platform.system())
+    # BIN_PATH = os.path.join(BIN_DIR, BIN)
     _platform = None
     PLATFORM_BIT = None
 
@@ -138,7 +196,7 @@ class ClangReplConfig:
     @staticmethod
     def platform():
         return ClangReplConfig._platform
-    
+
     @staticmethod
     def set_platform(platform):
         ClangReplConfig._platform = platform
@@ -156,28 +214,63 @@ class ClangReplConfig:
         ClangReplConfig.USER_DEFINED_INSTALL_PATH = os.path.dirname(bin_path)
 
     @staticmethod
+    def get_platform_path():
+        return PlatformPath.PATH[ClangReplConfig.PLATFORM_NAME_ENUM.value][ClangReplConfig.PLATFORM_BIT.value]
+
+    @staticmethod
     def get_install_dir():
         if ClangReplConfig.USER_DEFINED_INSTALL_PATH is not None:
             return ClangReplConfig.USER_DEFINED_INSTALL_PATH
         else:
             return os.path.join(ClangReplConfig.CLANG_BASE_DIR, ClangReplConfig.platform())
+
     @staticmethod
     def get_bin_dir():
         if ClangReplConfig.USER_DEFINED_BIN_PATH is not None:
             return ClangReplConfig.USER_DEFINED_BIN_PATH
         else:
             return os.path.join(ClangReplConfig.get_install_dir(), 'bin')
+
+    @staticmethod
+    def get_c_include():
+        if ClangReplConfig.USER_DEFINED_BIN_PATH is not None:
+            return os.path.join(ClangReplConfig.USER_DEFINED_BIN_PATH, '..', ClangReplConfig.get_platform_path(),
+                                'include')
+        else:
+            return os.path.join(ClangReplConfig.get_install_dir(), ClangReplConfig.get_platform_path(), 'include')
+
+    @staticmethod
+    def get_cpp_include():
+        if ClangReplConfig.USER_DEFINED_BIN_PATH is not None:
+            return os.path.join(ClangReplConfig.USER_DEFINED_BIN_PATH, '..', ClangReplConfig.get_platform_path(),
+                                'include', 'c++', 'v1')
+        else:
+            return os.path.join(ClangReplConfig.get_install_dir(), ClangReplConfig.get_platform_path(),
+                                'include', 'c++', 'v1')
+
     @staticmethod
     def get_bin_path():
         return os.path.join(ClangReplConfig.get_bin_dir(), ClangReplConfig.BIN)
+
     @staticmethod
     def get_dynlib_dir():
         bin_dir = ClangReplConfig.get_bin_dir()
         assert ClangReplConfig.PLATFORM_BIT is not None
-        sub_bin_dir = bin_dir+"/../"+ PlatformPath.PATH[ClangReplConfig.PLATFORM_NAME_ENUM.value][ClangReplConfig.PLATFORM_BIT.value]
-        abs_path =[os.path.abspath(bin_dir), os.path.abspath(sub_bin_dir)]
-        return abs_path
+        sub_bin_dir = bin_dir + "/../" + PlatformPath.PATH[ClangReplConfig.PLATFORM_NAME_ENUM.value][
+            ClangReplConfig.PLATFORM_BIT.value] + '/lib'
+        abs_path = []
+        # when linux
+        if ClangReplConfig.PLATFORM_NAME_ENUM == PlatformPath.Platform.Linux:
+            abs_path.append(
+                os.path.join('/lib',
+                             PlatformPath.PATH[ClangReplConfig.PLATFORM_NAME_ENUM.value][
+                                 ClangReplConfig.PLATFORM_BIT.value]))
+            abs_path.append(os.path.abspath(ClangReplConfig.PYTHON_CLANG_DLL_DIR))
 
+        abs_path.append(os.path.abspath(bin_dir))
+        abs_path.append(os.path.abspath(sub_bin_dir))
+
+        return abs_path
 
     @classmethod
     def get_available_bin_path(cls):
@@ -227,10 +320,9 @@ class ClangReplConfig:
         return bin_path_platform
 
 
-
-
 class Shell:
     env = os.environ.copy()
+
     def __init__(self, bin_path, banner_name='clang-repl'):
         self.process = None
         self.bin_path = bin_path
@@ -247,7 +339,6 @@ class Shell:
         logging.basicConfig(stream=sys.stdout, level=logging.INFO)
         self.logger = logging.getLogger('LOGGER_NAME')
 
-
     def __del__(self):
         self.del_loop()
 
@@ -259,7 +350,6 @@ class Shell:
             if os.path.isdir(os.path.join(ClangReplConfig.CLANG_BASE_DIR, a_dir)):
                 bin_path.append(a_dir)
         return bin_path
-
 
     async def _del_loop(self):
         if self.process is not None:
@@ -296,13 +386,17 @@ class Shell:
         program_path = str(os.path.dirname(program)) + os.pathsep + os.getcwd() + os.pathsep
         if env['PATH'] is not None and not env['PATH'].startswith(program_path):
             env['PATH'] = program_path + env['PATH']
-        #for key in env:
-            #logger.debug('This is hidden')
-            #logger.warning('This too')
-            #self.logger.info(key + " = " + env[key])
+        # for key in env:
+        # logger.debug('This is hidden')
+        # logger.warning('This too')
+        # self.logger.info(key + " = " + env[key])
+        program_with_args = " ".join(program_with_args)
         self.process = subprocess.Popen(
             program_with_args,
             # args=[],
+            # text=True,
+            # bufsize=1,
+            shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE, env=env)
         outs = ''
@@ -315,12 +409,26 @@ class Shell:
             if self.check_endswith(outs, self.banner):
                 break
 
+        def _silent_response(msg):
+            pass
+
         for dylib in ClangReplConfig.DLIB:
-            self.do_execute('%lib ' + dylib+'\n', False)
+            self.do_execute('%lib ' + dylib + '\n', _silent_response)
             assert self.process.returncode is None
 
         for header in ClangReplConfig.HEADERS:
-            self.do_execute('#include <' + header+'>\n', False)
+            self.do_execute('#include <' + header + '>\n', _silent_response)
+            assert self.process.returncode is None
+
+        accumulated_line = ""
+        for line in workarounds[ClangReplConfig.PLATFORM_NAME_ENUM.value].splitlines():
+            if line.endswith('\\'):
+                accumulated_line += line[:-1]
+                continue
+            else:
+                accumulated_line += line
+            self.do_execute(accumulated_line, _silent_response)
+            accumulated_line = ""
             assert self.process.returncode is None
 
     def run(self):
@@ -351,6 +459,8 @@ class Shell:
         return False
 
     def _do_execute(self, command, send_func):
+        if CLANG_REPL_DEBUG:
+            print("Command: ", command)
         if self.check_input_err(command):
             return
         command_lines = []
@@ -376,6 +486,12 @@ class Shell:
             while self.process.returncode is None:
                 stdout_data = self.process.stdout.read(1)
                 outs += stdout_data
+                if CLANG_REPL_DEBUG:
+                    print("outs: ", outs, ", stdout_data: ", stdout_data)
+                if len(stdout_data) == 0:
+                    out, err = self.process.communicate()
+                    print("End of process, out: ", out, ", error code: ", err)
+                    return
                 if not (outs == self.banner_cont_bytes[:len(outs)]) and not (outs == self.banner_bytes[:len(outs)]):
                     self.handle_err()
                     return
@@ -406,6 +522,12 @@ class Shell:
         while self.process.returncode is None:
             stdout_data = self.process.stdout.read(1)
             outs += stdout_data
+            if CLANG_REPL_DEBUG:
+                print("outs: ", outs, ", stdout_data: ", stdout_data)
+            if len(stdout_data) == 0:
+                out, err = self.process.communicate()
+                print("End of process, out: ", out, ", error code: ", err)
+                return
             if len(outs) >= len(self.banner_bytes):
                 banner_part = outs[len(outs) - len(self.banner_bytes):]
                 if banner_part == self.banner_bytes:
@@ -433,16 +555,23 @@ class Shell:
                 outs = bytearray()
 
     def do_execute(self, command, send_func):
+
         return self._do_execute(command, send_func)
 
     def do_execute_sync(self, command):
         response_message = []
+
         def _send_response(msg):
             response_message.append(msg)
 
-        self.do_execute(command, _send_response)
+        import threading
+        _kernel_thread = threading.Thread(target=self.do_execute, args=[command, _send_response], daemon=True)
+        _kernel_thread.start()
+
+        _kernel_thread.join()
         full_message = ''.join(response_message)
         return full_message
+
 
 class BashShell(Shell):
     def __init__(self, bin_path, banner_name=ClangReplConfig.BANNER_NAME):
@@ -509,8 +638,15 @@ class ClangReplKernel(Kernel):
         for dy_libpath in ClangReplConfig.get_dynlib_dir():
             if not ClangReplConfig.DYLIB_PATH_ENV in self.my_shell.env:
                 self.my_shell.env[ClangReplConfig.DYLIB_PATH_ENV] = ""
-            self.my_shell.env[ClangReplConfig.DYLIB_PATH_ENV] = dy_libpath + os.pathsep + self.my_shell.env[ClangReplConfig.DYLIB_PATH_ENV]
+            self.my_shell.env[ClangReplConfig.DYLIB_PATH_ENV] = dy_libpath + os.pathsep + self.my_shell.env[
+                ClangReplConfig.DYLIB_PATH_ENV]
 
+        self.my_shell.env["CPATH"] = os.pathsep.join(
+            filter(None, [self.my_shell.env.get("CPATH", ""), ClangReplConfig.get_c_include()])
+        )
+        self.my_shell.env["CPLUS_INCLUDE_PATH"] = os.pathsep.join(
+            filter(None, [self.my_shell.env.get("CPLUS_INCLUDE_PATH", ""), ClangReplConfig.get_cpp_include()])
+        )
         if not ClangReplKernel.ClangReplKernel_InTest:
             self.my_shell.run()
 
@@ -534,6 +670,8 @@ class ClangReplKernel(Kernel):
             code = code.strip()[3:]
             code = code[:-1] if code.endswith(';') else code
             code = "std::cout << " + code + " << std::endl;"
+        if ClangReplConfig.PLATFORM_NAME_ENUM == PlatformPath.Platform.Linux:
+            code.replace("std::cout", "pcout")
         # self.execution_count += 1
         self.my_shell.do_execute(code, send_response)
 
@@ -551,6 +689,8 @@ class ClangReplKernel(Kernel):
             code = code.strip()[3:]
             code = code[:-1] if code.endswith(';') else code
             code = "std::cout << " + code + " << std::endl;"
+        if ClangReplConfig.PLATFORM_NAME_ENUM == PlatformPath.Platform.Linux:
+            code.replace("std::cout", "pcout")
         # self.execution_count += 1
         output = self.my_shell.do_execute_sync(code)
 

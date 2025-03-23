@@ -4,13 +4,13 @@ import os
 import re
 import sys
 import shutil
-
+import stat
 import requests
 import platform
 
 from jupyter_client.kernelspec import KernelSpecManager
 from tempfile import TemporaryDirectory
-from . import ClangReplConfig, download, is_done
+from . import ClangReplConfig, download, is_done, update_platform_system
 
 kernel_json = {
     "argv": [ClangReplConfig.PYTHON_EXE, "-m", "clang_repl_kernel", "-f", "{connection_file}"],
@@ -68,12 +68,6 @@ def get_filename_from_response(url):
 
     return "downloaded.file"
 
-def update_platform_system(platform_system):
-    if platform_system == 'Windows':
-        platform_system = 'WinMG64'
-    elif platform_system == 'Linux':
-        platform_system = 'Lin64'
-    return platform_system
 
 
 def _is_installed_clang_exist(platform_system):
@@ -100,10 +94,9 @@ def is_installed_clang_exist(platform_system=None):
 
 
 
-def install_bundles(platform_system, installed_clang_executable=None):
+def install_bundles(platform_system, installed_clang_executable=None, force_install=False):
     platform_system = update_platform_system(platform_system)
     clang_installed = is_installed_clang_exist()
-
 
     if installed_clang_executable is not None:
         r_idx = installed_clang_executable.rfind('clang-repl')
@@ -119,10 +112,11 @@ def install_bundles(platform_system, installed_clang_executable=None):
             f.write(clang_repl_dir)
         return
 
-    if not clang_installed:
+    if force_install or not clang_installed:
         zip_filename = platform_system+".zip"
         extract_dir = ClangReplConfig.get_install_dir()
         download(zip_filename, extract_dir)
+
 
 
 def _is_root():

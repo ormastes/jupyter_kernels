@@ -71,13 +71,19 @@ def test_install_bundles(setup_dir, kernel):
 
 @pytest.mark.skip(reason="should not used in CI")
 def test_install_bundles_winmg64():
-    install_bundles('WinMG64', None)
+    install_bundles('WinMG64', None, force_install=True)
     assert os.path.exists(ClangReplConfig.get_bin_path()), "WinMG64 installation failed"
 
 @pytest.mark.skip(reason="should not used in CI")
 def test_install_bundles_winmg32():
-    install_bundles('WinMG32', None)
+    install_bundles('WinMG32', None, force_install=True)
     assert os.path.exists(ClangReplConfig.get_bin_path()), "WinMG32 installation failed"
+
+
+@pytest.mark.skip(reason="should not used in CI")
+def test_install_bundles_linux64():
+    install_bundles('x86_64-linux-gnu', None, force_install=True)
+    assert os.path.exists(ClangReplConfig.get_bin_path()), "x86_64-linux-gnu installation failed"
 
 @pytest.mark.skip(reason="should not used in CI")
 # need to run test_install_bundles_winmg32 first
